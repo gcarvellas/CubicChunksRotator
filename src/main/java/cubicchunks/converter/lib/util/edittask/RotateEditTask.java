@@ -89,6 +89,9 @@ public class RotateEditTask extends TranslationEditTask {
     private byte rotateMetadata(MaterialData blockData, String blockName){
         int degree = degrees;
         byte result=blockData.getData();
+        if(blockName.equals("SKULL")){
+            return result;
+        }
         //TODO item frames do not work
         while ((degree/=90) > 0){
             if (blockName.equals("SIGN_POST"))
@@ -156,6 +159,14 @@ public class RotateEditTask extends TranslationEditTask {
             int zVal = ((((Integer) tileEntity.get("x").getValue())-8)*-1)+7;
             tileEntity.put(new IntTag("x", xVal));
             tileEntity.put(new IntTag("z", zVal));
+
+            // Handle Skulls
+            String id = ((String) tileEntity.get("id").getValue());
+            if (id.equals("minecraft:skull")){
+                int rot = (int) ((Byte) tileEntity.get("Rot").getValue());
+                rot = (byte) ((rot - 4) % 16);
+                tileEntity.put(new IntTag("Rot", rot));
+            }
         }
 
         // Rotating Entities
