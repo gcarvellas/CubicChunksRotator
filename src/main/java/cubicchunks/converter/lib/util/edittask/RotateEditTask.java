@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.Material;
 import org.bukkit.material.Directional;
 import org.bukkit.material.MaterialData;
@@ -46,71 +47,70 @@ public class RotateEditTask extends TranslationEditTask {
         srcBoxes.add(srcBox);
         dstBoxes.add(srcBox);
         this.origin = origin;
-        if (degrees % 90 != 0) throw new IllegalArgumentException("Degrees must be divisible by 90");
+        if (degrees <= 0 || degrees > 360 || degrees % 90 != 0) throw new IllegalArgumentException("Degrees must be between (0,360) and divisible by 90");
+        if (degrees != 90) throw new NotImplementedException("Rotator only works for 90 degree rotations"); //TODO
         this.degrees = degrees;
     }
 
-    public Vector3i rotateDst90Degrees(Vector3i dst){
-        int newX = dst.getX();
-        int newZ = dst.getZ();
-
+    private int[] rotateChunkCoordinate(int x, int z){
         //Subtract origin from points
-        newX-=this.origin.getX();
-        newZ-=this.origin.getZ();
+        x-=this.origin.getX();
+        z-=this.origin.getZ();
 
-        //Swap X and Y
-        int temp = newZ;
-        newZ = newX;
-        newX = temp;
-
-        newZ*=-1;
+        //Swap X and Z
+        for(int i=0; i<this.degrees; i+=90){
+            x = x ^ z ^ (z = x);
+            z*=-1;
+        }
 
         //Add origin to points
-        newX+=this.origin.getX();
-        newZ+=this.origin.getZ();
+        x+=this.origin.getX();
+        z+=this.origin.getZ();
 
-        return new Vector3i(newX, dst.getY(), newZ);
+        return new int[]{x, z};
     }
 
-    public Vector3i rotateDst(Vector3i dstPos, int degrees){
-        int degree = degrees;
-        while ((degree/=90) > 0){
-            dstPos = this.rotateDst90Degrees(dstPos);
-        }
-        return dstPos;
+    private Vector3i rotateDstVector(Vector3i dstPos){
+        int[] rotatedCoordinates = rotateChunkCoordinate(dstPos.getX(), dstPos.getZ());
+        return new Vector3i(rotatedCoordinates[0], dstPos.getY(), rotatedCoordinates[1]);
     }
 
-    public EntryLocation2D rotateDst(EntryLocation2D dstPos, int degrees){
-        Vector3i temp = new Vector3i(dstPos.getEntryX(), 0, dstPos.getEntryZ());
-        temp = rotateDst(temp, this.degrees);
-        return new EntryLocation2D(temp.getX(), temp.getZ());
+    public EntryLocation2D rotateDstEntryLocation(EntryLocation2D dstPos){
+        int[] rotatedCoordinates = rotateChunkCoordinate(dstPos.getEntryX(), dstPos.getEntryZ());
+        return new EntryLocation2D(rotatedCoordinates[0], rotatedCoordinates[1]);
     }
 
-    private byte rotateMetadata(MaterialData blockData, String blockName){
-        int degree = degrees;
-        byte result=blockData.getData();
-        if(blockName.equals("SKULL")){
-            return result;
+    private boolean isFloorSkull(String blockName, byte metaData){
+        return blockName.equals("SKULL") && metaData == 1;
+    }
+
+    private byte handleRotationalMetadata(MaterialData blockData, String blockName){
+        //int degree = degrees;
+        int metaData=blockData.getData();
+        int rotationalCount = this.degrees / 90;
+
+        if (isFloorSkull(blockName, (byte) metaData)) return (byte) metaData;
+
+        switch (blockName){
+            case "SIGN_POST":
+                return (byte) Math.floorMod(metaData-(4*rotationalCount), 16);
+            case "WALL_SIGN":
+                return (byte) Math.abs((metaData-3+(2*rotationalCount)) % 4 + 3);
+            default:
+                // TODO optimize this switch into 1-2 lines if possible
+                int valueOffset;
+                switch (metaData){
+                    case 5:
+                        valueOffset=-3;
+                        break;
+                    case 4:
+                        valueOffset=-1;
+                        break;
+                    default:
+                        valueOffset=2;
+                }
+                return (byte) (Math.floorMod((metaData-2)+(valueOffset*rotationalCount), 6)+2);
         }
-        //TODO item frames do not work
-        while ((degree/=90) > 0){
-            if (blockName.equals("SIGN_POST"))
-                result= (byte) ((((int) result) - 4) % 16); //TODO this doesn't work.
-            else if (blockName.equals("WALL_SIGN"))
-                result = (byte) (Math.abs(((((int) result) - 3) + 2) % 4) + 3); //TODO this doesn't work.
-            else{
-                if (result == 5) //TODO bad code
-                    result=2;
-                else if (result == 2)
-                    result = 4;
-                else if (result == 4)
-                    result = 3;
-                else if (result == 3)
-                    result = 5;
-            }
-//                result = (byte) (Math.abs(((( (int) result) - 2) - 2) % 4) + 2);
-        }
-        return result;
     }
 
     private int rotateMetadata(int blockId, int metaData){
@@ -119,17 +119,96 @@ public class RotateEditTask extends TranslationEditTask {
         }
         Material block = Material.getMaterial(blockId);
         MaterialData blockData = block.getNewData((byte) metaData);
-        if (blockData instanceof Directional){
-            metaData = this.rotateMetadata(blockData, block.name());
+        if (!(blockData instanceof Directional)){
+            return metaData;
         }
-        return metaData;
+        return this.handleRotationalMetadata(blockData, block.name());
     }
+
+    private void handleSkullTileEntities(CompoundMap tileEntity){
+        int rot = (int) ((Byte) tileEntity.get("Rot").getValue());
+        rot = (byte) Math.floorMod(rot-4,16); //TODO this only works for 90 degrees
+        tileEntity.put(new IntTag("Rot", rot));
+    }
+
+    private void rotateTileEntities(CompoundMap level){
+        for (int i=0; i< ((List<?>) (level).get("TileEntities").getValue()).size(); i++){
+            CompoundMap tileEntity = ((CompoundTag) ((List<?>) (level).get("TileEntities").getValue()).get(i)).getValue();
+            int x = ((Integer) tileEntity.get("z").getValue()); //TODO this only works for 90 degrees
+            int z = ((((Integer) tileEntity.get("x").getValue())-8)*-1)+7; //TODO this only works for 90 degrees
+            tileEntity.put(new IntTag("x", x));
+            tileEntity.put(new IntTag("z", z));
+
+            String blockName = ((String) tileEntity.get("id").getValue());
+            if (blockName.equals("minecraft:skull")) handleSkullTileEntities(tileEntity);
+        }
+    }
+
+    private void handleItemFrames(double x, double z, CompoundMap entity){
+        entity.put(new IntTag("TileX", (int) Math.floor(x)));
+        entity.put(new IntTag("TileZ", (int) Math.ceil(z)));
+
+        int facing = (int) ((Byte) entity.get("Facing").getValue());
+        entity.put(new ByteTag("Facing", ((byte) ((facing+2) %4)))); //TODO this only works for 90 degrees
+    }
+
+    private void rotateEntities(CompoundMap level){
+        for (int i=0; i< ((List<?>) (level).get("Entities").getValue()).size(); i++){
+            CompoundMap entity = ((CompoundTag) ((List<?>) (level).get("Entities").getValue()).get(i)).getValue();
+            List<DoubleTag> pos = (List<DoubleTag>) entity.get("Pos").getValue();
+            double x = (pos.get(2).getValue()); //TODO this only works for 90 degrees
+            double z = (((pos.get(0).getValue())-8)*-1)+7; //TODO this only works for 90 degrees
+            double y = (pos.get(1).getValue());
+            List<DoubleTag> newPos = Arrays.asList(new DoubleTag("", x), new DoubleTag("", y), new DoubleTag("", z));
+            entity.put(new ListTag<>("Pos", DoubleTag.class, newPos));
+
+            String blockName = ((String) entity.get("id").getValue());
+            if (blockName.equals("minecraft:item_frame")) handleItemFrames(x, z, entity);
+        }
+    }
+
+    private void rotateBlocks(CompoundMap sectionDetails){
+        final byte[] blocks = (byte[]) sectionDetails.get("Blocks").getValue();
+        final byte[] meta = (byte[]) sectionDetails.get("Data").getValue();
+
+        byte[] newBlocks = new byte[blocks.length];
+        byte[] newMeta = new byte[meta.length];
+
+        int sideLen=16;
+        int squareLen=sideLen*sideLen;
+
+        for (int y = 0; y < blocks.length / squareLen; y++) {
+            for (int r = 0; r < sideLen; r++) {
+                for (int c = 0; c < sideLen; c++) {
+                    int newIndex;
+                    switch (this.degrees){
+                        case 90:
+                            newIndex = (((sideLen - 1) - c)*sideLen) + r+ (y * squareLen);
+                            break;
+                        case 180:
+                            throw new NotImplementedException("180 degree rotations not implemented yet."); //TODO implement
+                        case 270:
+                            newIndex = ((c*sideLen)+sideLen-1-r)+(y*squareLen); //TODO verify this works
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Invalid degrees");
+                    }
+                    int oldIndex = ((r * sideLen) + c) + (y * squareLen);
+                    newBlocks[newIndex] = blocks[oldIndex];
+                    int metaData = rotateMetadata(newBlocks[newIndex], EditTask.nibbleGetAtIndex(meta, oldIndex));
+                    EditTask.nibbleSetAtIndex(newMeta, newIndex, metaData);
+                }
+            }
+        }
+        System.arraycopy(newBlocks, 0, blocks, 0, blocks.length);
+        System.arraycopy(newMeta, 0, meta, 0, meta.length);
+    }
+
 
     @Nonnull public List<ImmutablePair<Vector3i, ImmutablePair<Long, CompoundTag>>> actOnCube(Vector3i cubePos, EditTaskContext.EditTaskConfig config, CompoundTag cubeTag, long inCubePriority) {
         List<ImmutablePair<Vector3i, ImmutablePair<Long, CompoundTag>>> outCubes = new ArrayList<>();
 
-        // calculate offset
-        Vector3i dstPos = this.rotateDst(cubePos, this.degrees);
+        Vector3i dstPos = this.rotateDstVector(cubePos);
 
         // adjusting new cube data to be valid
         CompoundMap level = (CompoundMap) cubeTag.getValue().get("Level").getValue();
@@ -152,72 +231,13 @@ public class RotateEditTask extends TranslationEditTask {
         }
         this.markCubePopulated(level);
 
-        // Rotating Tile Entities
-        for (int i=0; i< ((List<?>) (level).get("TileEntities").getValue()).size(); i++){
-            CompoundMap tileEntity = ((CompoundTag) ((List<?>) (level).get("TileEntities").getValue()).get(i)).getValue();
-            int xVal = ((Integer) tileEntity.get("z").getValue());
-            int zVal = ((((Integer) tileEntity.get("x").getValue())-8)*-1)+7;
-            tileEntity.put(new IntTag("x", xVal));
-            tileEntity.put(new IntTag("z", zVal));
+        this.rotateTileEntities(level);
+        this.rotateEntities(level);
 
-            // Handle Skulls
-            String id = ((String) tileEntity.get("id").getValue());
-            if (id.equals("minecraft:skull")){
-                int rot = (int) ((Byte) tileEntity.get("Rot").getValue());
-                rot = (byte) ((rot - 4) % 16);
-                tileEntity.put(new IntTag("Rot", rot));
-            }
-        }
+        this.rotateBlocks(sectionDetails);
 
-        // Rotating Entities
-        for (int i=0; i< ((List<?>) (level).get("Entities").getValue()).size(); i++){
-            CompoundMap entity = ((CompoundTag) ((List<?>) (level).get("Entities").getValue()).get(i)).getValue();
-            List<DoubleTag> pos = (List<DoubleTag>) entity.get("Pos").getValue();
-            double xVal = (pos.get(2).getValue());
-            double zVal = (((pos.get(0).getValue())-8)*-1)+7;
-            double yVal = (pos.get(1).getValue());
-            List<DoubleTag> newPos = Arrays.asList(new DoubleTag("", xVal), new DoubleTag("", yVal), new DoubleTag("", zVal));
-            entity.put(new ListTag<>("Pos", DoubleTag.class, newPos));
-
-            //Handle Item Frames
-            String id = ((String) entity.get("id").getValue());
-            if (id.equals("minecraft:item_frame")) {
-                entity.put(new IntTag("TileX", (int) Math.floor(xVal)));
-                entity.put(new IntTag("TileZ", (int) Math.ceil(zVal)));
-
-                int facing = (int) ((Byte) entity.get("Facing").getValue());
-                entity.put(new ByteTag("Facing", ((byte) ((facing+2) %4)) ));
-            }
-        }
-
-        final byte[] blocks = (byte[]) sectionDetails.get("Blocks").getValue();
-        final byte[] meta = (byte[]) sectionDetails.get("Data").getValue();
-
-        byte[] newBlocks = new byte[blocks.length];
-        byte[] newMeta = new byte[meta.length];
-
-        int sideLen=16;
-        int squareLen=sideLen*sideLen;
-
-        for(int i=0; i<this.degrees; i+=90) {
-            for (int y = 0; y < blocks.length / squareLen; y++) {
-                for (int r = 0; r < sideLen; r++) {
-                    for (int c = 0; c < sideLen; c++) {
-                        //int newIndex = ((c*sideLen)+sideLen-1-r)+(y*squareLen);   //Counter Clockwise
-                        int newIndex = (((sideLen - 1) - c)*sideLen) + r+ (y * squareLen); //Clockwise
-                        int oldIndex = ((r * sideLen) + c) + (y * squareLen);
-                        newBlocks[newIndex] = blocks[oldIndex];
-                        int metaData = rotateMetadata(newBlocks[newIndex], EditTask.nibbleGetAtIndex(meta, oldIndex));
-                        EditTask.nibbleSetAtIndex(newMeta, newIndex, metaData);
-                    }
-                }
-            }
-            System.arraycopy(newBlocks, 0, blocks, 0, blocks.length);
-            System.arraycopy(newMeta, 0, meta, 0, meta.length);
-        }
-
-    outCubes.add(new ImmutablePair<>(dstPos, new ImmutablePair<>(inCubePriority + 1, cubeTag)));
-    return outCubes;
+        outCubes.add(new ImmutablePair<>(dstPos, new ImmutablePair<>(inCubePriority + 1, cubeTag)));
+        return outCubes;
     }
 
 }

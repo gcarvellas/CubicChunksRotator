@@ -99,10 +99,11 @@ public class CC2CCRelocatingDataConverter implements ChunkDataConverter<Priority
             boolean anyBoxNeedsData = false;
             boolean intersectsSrcBox = false;
 
+            //TODO cleanup code
             for(EditTask task : relocateTasks) {
                 if (task instanceof RotateEditTask) {
                     hasRotateEditTask = true;
-                    rotatedInPosition = ((RotateEditTask) task).rotateDst(inPosition, ((RotateEditTask) task).degrees);
+                    rotatedInPosition = ((RotateEditTask) task).rotateDstEntryLocation(inPosition);
                 }
                 List<BoundingBox> srcBoxes = task.getSrcBoxes();
                 for (BoundingBox srcBox : srcBoxes) {
