@@ -31,9 +31,7 @@ import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.Material;
@@ -42,6 +40,7 @@ import org.bukkit.material.MaterialData;
 
 public class RotateEditTask extends TranslationEditTask {
     private final Vector3i origin;
+    private Set<Integer> currentWallSkulls;
     public final int degrees;
     public RotateEditTask(BoundingBox srcBox, Vector3i origin, int degrees){
         srcBoxes.add(srcBox);
@@ -54,6 +53,7 @@ public class RotateEditTask extends TranslationEditTask {
             throw new NotImplementedException("Rotator only works for 90 degree rotations"); //TODO
         }
         this.degrees = degrees;
+        this.currentWallSkulls = new HashSet<Integer>();
     }
 
     private int[] rotateChunkCoordinate(int x, int z){
@@ -88,7 +88,9 @@ public class RotateEditTask extends TranslationEditTask {
         return blockName.equals("SKULL") && metaData == 1;
     }
 
-    private byte handleRotationalMetadata(MaterialData blockData, String blockName){
+    private boolean isWallSkull(String blockName, byte metaData) { return blockName.equals("SKULL") && metaData != 1; }
+
+    private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
         //int degree = degrees;
         int metaData=blockData.getData();
         int rotationalCount = this.degrees / 90;
@@ -97,11 +99,13 @@ public class RotateEditTask extends TranslationEditTask {
             return (byte) metaData;
         }
 
+        if (isWallSkull(blockName, (byte) metaData)){
+            this.currentWallSkulls.add(blocksNbtIndex);
+        }
+
         switch (blockName){
             case "SIGN_POST":
                 return (byte) ((metaData-(4*rotationalCount)) % 16);
-            case "WALL_SIGN":
-                return (byte) Math.abs(((metaData-3+(2*rotationalCount)) % 4) + 3);
             default:
                 // TODO optimize this switch into 1-2 lines if possible
                 int valueOffset;
@@ -119,7 +123,7 @@ public class RotateEditTask extends TranslationEditTask {
         }
     }
 
-    private int rotateMetadata(int blockId, int metaData){
+    private int rotateMetadata(int blockId, int metaData, int blocksNbtIndex){
         if (blockId < 0){
             blockId+=256;
         }
@@ -128,7 +132,7 @@ public class RotateEditTask extends TranslationEditTask {
         if (!(blockData instanceof Directional)){
             return metaData;
         }
-        return this.handleRotationalMetadata(blockData, block.name());
+        return this.handleRotationalMetadata(blockData, block.name(), blocksNbtIndex);
     }
 
     private void handleSkullTileEntities(CompoundMap tileEntity){
@@ -137,16 +141,23 @@ public class RotateEditTask extends TranslationEditTask {
         tileEntity.put(new IntTag("Rot", rot));
     }
 
+    private boolean isNotWallSkull(int x, int y, int z){
+        int blocksNbtIndex = (256*Math.floorMod(y, 16))+(16*Math.floorMod(z, 16))+Math.floorMod(x, 16);
+        return !this.currentWallSkulls.contains(blocksNbtIndex);
+    }
+
     private void rotateTileEntities(CompoundMap level){
         for (int i=0; i< ((List<?>) (level).get("TileEntities").getValue()).size(); i++){
             CompoundMap tileEntity = ((CompoundTag) ((List<?>) (level).get("TileEntities").getValue()).get(i)).getValue();
             int x = ((Integer) tileEntity.get("z").getValue()); //TODO this only works for 90 degrees
             int z = ((((Integer) tileEntity.get("x").getValue())-8)*-1)+7; //TODO this only works for 90 degrees
+            int y = (Integer) tileEntity.get("y").getValue();
             tileEntity.put(new IntTag("x", x));
             tileEntity.put(new IntTag("z", z));
 
             String blockName = ((String) tileEntity.get("id").getValue());
-            if (blockName.equals("minecraft:skull")){
+            //TODO add handle to see if it's a floor skull
+            if (blockName.equals("minecraft:skull") && isNotWallSkull(x, y, z)){
                 handleSkullTileEntities(tileEntity);
             }
         }
@@ -206,7 +217,7 @@ public class RotateEditTask extends TranslationEditTask {
                     }
                     int oldIndex = ((r * sideLen) + c) + (y * squareLen);
                     newBlocks[newIndex] = blocks[oldIndex];
-                    int metaData = rotateMetadata(newBlocks[newIndex], EditTask.nibbleGetAtIndex(meta, oldIndex));
+                    int metaData = rotateMetadata(newBlocks[newIndex], EditTask.nibbleGetAtIndex(meta, oldIndex), newIndex);
                     EditTask.nibbleSetAtIndex(newMeta, newIndex, metaData);
                 }
             }
@@ -242,10 +253,11 @@ public class RotateEditTask extends TranslationEditTask {
         }
         this.markCubePopulated(level);
 
-        this.rotateTileEntities(level);
         this.rotateEntities(level);
 
         this.rotateBlocks(sectionDetails);
+
+        this.rotateTileEntities(level);
 
         outCubes.add(new ImmutablePair<>(dstPos, new ImmutablePair<>(inCubePriority + 1, cubeTag)));
         return outCubes;
