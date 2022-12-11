@@ -168,8 +168,11 @@ public class RotateEditTask extends TranslationEditTask {
         entity.put(new IntTag("TileZ", (int) Math.ceil(z)));
 
         int facing = (int) ((Byte) entity.get("Facing").getValue());
-        entity.put(new ByteTag("Facing", ((byte) ((facing+2) %4)))); //TODO this only works for 90 degrees
-    }
+        entity.put(new ByteTag("Facing", (byte) ((facing +3) % 4)));
+
+        }
+
+
 
     private void rotateEntities(CompoundMap level){
         for (int i=0; i< ((List<?>) (level).get("Entities").getValue()).size(); i++){
@@ -185,7 +188,6 @@ public class RotateEditTask extends TranslationEditTask {
             if (blockName.equals("minecraft:item_frame")){
                 handleItemFrames(x, z, entity);
             }
-
         }
     }
 
