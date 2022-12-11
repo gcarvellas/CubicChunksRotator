@@ -47,8 +47,12 @@ public class RotateEditTask extends TranslationEditTask {
         srcBoxes.add(srcBox);
         dstBoxes.add(srcBox);
         this.origin = origin;
-        if (degrees <= 0 || degrees > 360 || degrees % 90 != 0) throw new IllegalArgumentException("Degrees must be between (0,360) and divisible by 90");
-        if (degrees != 90) throw new NotImplementedException("Rotator only works for 90 degree rotations"); //TODO
+        if (degrees <= 0 || degrees > 360 || degrees % 90 != 0){
+            throw new IllegalArgumentException("Degrees must be between (0,360) and divisible by 90");
+        }
+        if (degrees != 90){
+            throw new NotImplementedException("Rotator only works for 90 degree rotations"); //TODO
+        }
         this.degrees = degrees;
     }
 
@@ -89,13 +93,15 @@ public class RotateEditTask extends TranslationEditTask {
         int metaData=blockData.getData();
         int rotationalCount = this.degrees / 90;
 
-        if (isFloorSkull(blockName, (byte) metaData)) return (byte) metaData;
+        if (isFloorSkull(blockName, (byte) metaData)){
+            return (byte) metaData;
+        }
 
         switch (blockName){
             case "SIGN_POST":
-                return (byte) Math.floorMod(metaData-(4*rotationalCount), 16);
+                return (byte) ((metaData-(4*rotationalCount)) % 16);
             case "WALL_SIGN":
-                return (byte) Math.abs((metaData-3+(2*rotationalCount)) % 4 + 3);
+                return (byte) Math.abs(((metaData-3+(2*rotationalCount)) % 4) + 3);
             default:
                 // TODO optimize this switch into 1-2 lines if possible
                 int valueOffset;
@@ -140,7 +146,9 @@ public class RotateEditTask extends TranslationEditTask {
             tileEntity.put(new IntTag("z", z));
 
             String blockName = ((String) tileEntity.get("id").getValue());
-            if (blockName.equals("minecraft:skull")) handleSkullTileEntities(tileEntity);
+            if (blockName.equals("minecraft:skull")){
+                handleSkullTileEntities(tileEntity);
+            }
         }
     }
 
@@ -163,7 +171,10 @@ public class RotateEditTask extends TranslationEditTask {
             entity.put(new ListTag<>("Pos", DoubleTag.class, newPos));
 
             String blockName = ((String) entity.get("id").getValue());
-            if (blockName.equals("minecraft:item_frame")) handleItemFrames(x, z, entity);
+            if (blockName.equals("minecraft:item_frame")){
+                handleItemFrames(x, z, entity);
+            }
+
         }
     }
 
