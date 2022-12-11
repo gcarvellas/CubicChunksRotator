@@ -90,6 +90,30 @@ public class RotateEditTask extends TranslationEditTask {
 
     private boolean isWallSkull(String blockName, byte metaData) { return blockName.equals("SKULL") && metaData != 1; }
 
+    private int handleRails(int metaData){
+        switch(metaData){
+            case 0: //0 - 1 straights
+                return 1;
+            case 1:
+                return 0;
+            case 2: //2 - 5 curves
+            case 3:
+                return (metaData+12) % 10;
+            case 4:
+                return 3;
+            case 5:
+                return 2;
+            case 6: //6 - 9elevates
+                return 9;
+            case 7:
+            case 8:
+            case 9:
+                return metaData-1;
+            default:
+                throw new IllegalArgumentException("Invalid rail metadata");
+        }
+
+    }
     private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
         //int degree = degrees;
         int metaData=blockData.getData();
@@ -104,6 +128,11 @@ public class RotateEditTask extends TranslationEditTask {
         }
 
         switch (blockName){
+            case "RAILS":
+            case "POWERED-RAIL":
+            case "ACTIVATOR-RAIL":
+            case "DETECTOR-RAIL":
+                return (byte) handleRails(metaData);
             case "SIGN_POST":
                 return (byte) ((metaData-(4*rotationalCount)) % 16);
             default:
@@ -129,7 +158,7 @@ public class RotateEditTask extends TranslationEditTask {
         }
         Material block = Material.getMaterial(blockId);
         MaterialData blockData = block.getNewData((byte) metaData);
-        if (!(blockData instanceof Directional)){
+        if (!(block.name().contains("RAIL") && !(blockData instanceof Directional))){
             return metaData;
         }
         return this.handleRotationalMetadata(blockData, block.name(), blocksNbtIndex);
@@ -162,7 +191,6 @@ public class RotateEditTask extends TranslationEditTask {
             }
         }
     }
-
     private void handleItemFrames(double x, double z, CompoundMap entity){
         entity.put(new IntTag("TileX", (int) Math.floor(x)));
         entity.put(new IntTag("TileZ", (int) Math.ceil(z)));
