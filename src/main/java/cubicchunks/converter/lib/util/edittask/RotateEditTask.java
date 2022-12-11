@@ -105,6 +105,7 @@ public class RotateEditTask extends TranslationEditTask {
 
         switch (blockName){
             case "SIGN_POST":
+            case "STANDING_BANNER":
                 return (byte) ((metaData-(4*rotationalCount)) % 16);
             default:
                 // TODO optimize this switch into 1-2 lines if possible
