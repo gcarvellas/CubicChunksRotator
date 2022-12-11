@@ -53,7 +53,7 @@ public class RotateEditTask extends TranslationEditTask {
             throw new NotImplementedException("Rotator only works for 90 degree rotations"); //TODO
         }
         this.degrees = degrees;
-        this.currentWallSkulls = new HashSet<Integer>();
+        this.currentWallSkulls = new HashSet<>();
     }
 
     private int[] rotateChunkCoordinate(int x, int z){
@@ -157,7 +157,6 @@ public class RotateEditTask extends TranslationEditTask {
             tileEntity.put(new IntTag("z", z));
 
             String blockName = ((String) tileEntity.get("id").getValue());
-            //TODO add handle to see if it's a floor skull
             if (blockName.equals("minecraft:skull") && isNotWallSkull(x, y, z)){
                 handleSkullTileEntities(tileEntity);
             }
@@ -172,8 +171,6 @@ public class RotateEditTask extends TranslationEditTask {
         entity.put(new ByteTag("Facing", (byte) ((facing +3) % 4)));
 
         }
-
-
 
     private void rotateEntities(CompoundMap level){
         for (int i=0; i< ((List<?>) (level).get("Entities").getValue()).size(); i++){
@@ -228,7 +225,6 @@ public class RotateEditTask extends TranslationEditTask {
         System.arraycopy(newBlocks, 0, blocks, 0, blocks.length);
         System.arraycopy(newMeta, 0, meta, 0, meta.length);
     }
-
 
     @Nonnull public List<ImmutablePair<Vector3i, ImmutablePair<Long, CompoundTag>>> actOnCube(Vector3i cubePos, EditTaskContext.EditTaskConfig config, CompoundTag cubeTag, long inCubePriority) {
         List<ImmutablePair<Vector3i, ImmutablePair<Long, CompoundTag>>> outCubes = new ArrayList<>();
