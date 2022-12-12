@@ -159,10 +159,10 @@ public class RotateEditTask extends TranslationEditTask {
         }
         Material block = Material.getMaterial(blockId);
         MaterialData blockData = block.getNewData((byte) metaData);
-        if (!(block.name().contains("RAIL") && !(blockData instanceof Directional))){
-            return metaData;
+        if (block.name().contains("RAIL") || blockData instanceof Directional){
+            return this.handleRotationalMetadata(blockData, block.name(), blocksNbtIndex);
         }
-        return this.handleRotationalMetadata(blockData, block.name(), blocksNbtIndex);
+        return metaData;
     }
 
     private void handleSkullTileEntities(CompoundMap tileEntity){
