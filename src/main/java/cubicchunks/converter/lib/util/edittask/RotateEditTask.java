@@ -35,6 +35,7 @@ import java.util.*;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.Material;
+import org.bukkit.block.BlockFace;
 import org.bukkit.material.Directional;
 import org.bukkit.material.MaterialData;
 
@@ -114,6 +115,51 @@ public class RotateEditTask extends TranslationEditTask {
         }
 
     }
+
+    private byte handleDefaultCase(MaterialData blockData) {
+        Directional directionalBlockData = (Directional) blockData;
+        BlockFace facing = ((Directional) blockData).getFacing();
+        BlockFace newFacing = null;
+        for (int i = 0; i < this.degrees; i += 90) {
+            switch (facing) {
+                case NORTH:
+                    newFacing = BlockFace.EAST;
+                    break;
+                case EAST:
+                    newFacing = BlockFace.SOUTH;
+                    break;
+                case SOUTH:
+                    newFacing = BlockFace.WEST;
+                    break;
+                case WEST:
+                    newFacing = BlockFace.NORTH;
+                    break;
+                case NORTH_EAST:
+                    newFacing = BlockFace.SOUTH_EAST;
+                    break;
+                case SOUTH_EAST:
+                    newFacing = BlockFace.SOUTH_WEST;
+                    break;
+                case SOUTH_WEST:
+                    newFacing = BlockFace.NORTH_WEST;
+                    break;
+                case NORTH_WEST:
+                    newFacing = BlockFace.NORTH_EAST;
+                    break;
+                case UP:
+                case DOWN:
+                    return blockData.getData();
+                default:
+                    throw new IllegalArgumentException("Unknown facing value: " + facing);
+
+            }
+            directionalBlockData.setFacingDirection(newFacing);
+        }
+        return ((MaterialData) directionalBlockData).getData();
+    }
+
+
+
     private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
         //int degree = degrees;
         int metaData=blockData.getData();
@@ -129,27 +175,28 @@ public class RotateEditTask extends TranslationEditTask {
 
         switch (blockName){
             case "RAILS":
-            case "POWERED-RAIL":
-            case "ACTIVATOR-RAIL":
-            case "DETECTOR-RAIL":
+            case "POWERED_RAIL":
+            case "ACTIVATOR_RAIL":
+            case "DETECTOR_RAIL":
                 return (byte) handleRails(metaData);
             case "SIGN_POST":
             case "STANDING_BANNER":
                 return (byte) ((metaData-(4*rotationalCount)) % 16);
             default:
-                // TODO optimize this switch into 1-2 lines if possible
-                int valueOffset;
-                switch (metaData){
-                    case 5:
-                        valueOffset=-3;
-                        break;
-                    case 4:
-                        valueOffset=-1;
-                        break;
-                    default:
-                        valueOffset=2;
-                }
-                return (byte) (Math.floorMod((metaData-2)+(valueOffset*rotationalCount), 6)+2);
+                return handleDefaultCase(blockData);
+//                // TODO optimize this switch into 1-2 lines if possible
+//                int valueOffset;
+//                switch (metaData){
+//                    case 5:
+//                        valueOffset=-3;
+//                        break;
+//                    case 4:
+//                        valueOffset=-1;
+//                        break;
+//                    default:
+//                        valueOffset=2;
+//                }
+//                return (byte) (Math.floorMod((metaData-2)+(valueOffset*rotationalCount), 6)+2);
         }
     }
 
