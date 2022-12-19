@@ -158,6 +158,60 @@ public class RotateEditTask extends TranslationEditTask {
         return ((MaterialData) directionalBlockData).getData();
     }
 
+    private int handleGlazedTerracotta(int metaData){
+        switch(metaData){
+            case 2:
+                return 4;
+            case 3:
+                return 5;
+            case 4:
+                return 3;
+            case 5:
+                return 2;
+        }
+        return metaData;
+    }
+
+    private int handleRedstoneObjects(int metaData){
+        switch(metaData){
+            case 2:
+                return 4;
+            case 3:
+                return 5;
+            case 4:
+                return 3;
+            case 5:
+                return 2;
+        }
+        return metaData;
+    }
+    private int handleButtons(int metaData){
+        switch(metaData){
+            case 2:
+                return 3;
+            case 3:
+                return 1;
+            case 4:
+                return 2;
+            case 1:
+                return 4;
+        }
+        return metaData;
+    }
+
+    int handleRepeaters(int metaData){
+        switch(metaData){
+            case 2:
+                return 1;
+            case 1:
+                return 0;
+            case 0:
+                return 3;
+            case 3:
+                return 2;
+        }
+        return metaData;
+    }
 
 
     private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
@@ -172,6 +226,9 @@ public class RotateEditTask extends TranslationEditTask {
         if (isWallSkull(blockName, (byte) metaData)){
             this.currentWallSkulls.add(blocksNbtIndex);
         }
+        if (blockName.contains("GLAZED_TERRACOTTA")) {
+            return (byte) handleGlazedTerracotta(metaData);
+        }
 
         switch (blockName){
             case "RAILS":
@@ -182,6 +239,19 @@ public class RotateEditTask extends TranslationEditTask {
             case "SIGN_POST":
             case "STANDING_BANNER":
                 return (byte) ((metaData-(4*rotationalCount)) % 16);
+            case "OBSERVER":
+            case "DROPPER":
+            case "HOPPER":
+            case "DISPENSER":
+                return (byte) handleRedstoneObjects(metaData);
+            case "STONE_BUTTON":
+            case "WOOD_BUTTON":
+                return (byte) handleButtons(metaData);
+            case "DIODE_BLOCK_OFF":
+            case "DIODE_BLOCK_ON":
+                return (byte) handleRepeaters(metaData);
+            case "REDSTONE_COMPARITOR_OFF":
+            case "REDSTONE_COMPARITOR_ON":
             default:
                 return handleDefaultCase(blockData);
 //                // TODO optimize this switch into 1-2 lines if possible
@@ -206,7 +276,7 @@ public class RotateEditTask extends TranslationEditTask {
         }
         Material block = Material.getMaterial(blockId);
         MaterialData blockData = block.getNewData((byte) metaData);
-        if (block.name().contains("RAIL") || blockData instanceof Directional){
+        if (block.name().contains("RAIL") || block.name().contains("TERRACOTTA") || blockData instanceof Directional){
             return this.handleRotationalMetadata(blockData, block.name(), blocksNbtIndex);
         }
         return metaData;
