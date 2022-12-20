@@ -36,12 +36,15 @@ import java.util.*;
 import org.apache.commons.lang.NotImplementedException;
 import org.bukkit.Material;
 import org.bukkit.block.BlockFace;
+import org.bukkit.material.Bed;
 import org.bukkit.material.Directional;
 import org.bukkit.material.MaterialData;
 
 public class RotateEditTask extends TranslationEditTask {
     private final Vector3i origin;
     private Set<Integer> currentWallSkulls;
+
+    private final Set<String> PILLARS = new HashSet<>(Arrays.asList("LOG", "LOG_2", "QUARTZ_BLOCK", "PURPUR_PILLAR", "HAY_BLOCK"));
     public final int degrees;
     public RotateEditTask(BoundingBox srcBox, Vector3i origin, int degrees){
         srcBoxes.add(srcBox);
@@ -158,7 +161,65 @@ public class RotateEditTask extends TranslationEditTask {
         return ((MaterialData) directionalBlockData).getData();
     }
 
+    private int handleBeds(int metaData, int rotationalCount, boolean isHeadOfBed){
+        if (isHeadOfBed){
+            return Math.floorMod(metaData -8 - rotationalCount, 4) + 8;
+        }
+        return Math.floorMod(metaData - rotationalCount,4);
+    }
 
+    private int handleJackOLanterns(int metaData, int rotationalCount){
+        return Math.floorMod(metaData - rotationalCount, 4);
+    }
+
+    private int handleQuartzPillar(int metaData, int rotationalCount){
+        if (metaData != 0){
+            return Math.floorMod(metaData - 3 + rotationalCount, 2) + 3;
+        }
+        return metaData;
+    }
+
+    private int handleLogs(int metaData, int rotationalCount) {
+        if (metaData != 0){
+            for(int i=0; i< rotationalCount; i++){
+                if (metaData == 4 || metaData == 8) {
+                    metaData = metaData == 4 ? 8 : 4;
+                }
+                else if (metaData == 5 || metaData == 9) {
+                    metaData = metaData == 5 ? 9 : 5;
+                }
+                else if (metaData == 10 || metaData == 6){
+                    metaData = metaData == 10 ? 6 : 10;
+                }
+                else if (metaData == 11 || metaData == 7) {
+                    metaData = metaData == 11 ? 7 : 11;
+                }
+            }
+        }
+        return metaData;
+    }
+
+    private int handlePurpurPillars(int metaData, int rotationalCount){
+        if (metaData != 0){
+            for(int i=0; i< rotationalCount; i++){
+                metaData = metaData == 4 ? 8 : 4;
+            }
+        }
+        return metaData;
+    }
+
+    private int rotatePillars(String blockName, int metaData, int rotationalCount){
+        if (blockName.equals("QUARTZ_BLOCK")){ //TODO this is wrong
+            return handleQuartzPillar(metaData, rotationalCount);
+        }
+        if (blockName.contains("LOG") || blockName.equals("HAY_BLOCK")){ //TODO doesnt work for haybales
+            return handleLogs(metaData, rotationalCount);
+        }
+        if (blockName.equals("PURPUR_PILLAR")){
+            return handlePurpurPillars(metaData, rotationalCount);
+        }
+        return metaData;
+    }
 
     private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
         //int degree = degrees;
@@ -182,21 +243,12 @@ public class RotateEditTask extends TranslationEditTask {
             case "SIGN_POST":
             case "STANDING_BANNER":
                 return (byte) ((metaData-(4*rotationalCount)) % 16);
+            case "BED_BLOCK":
+                return (byte) handleBeds(metaData, rotationalCount, ((Bed) blockData).isHeadOfBed());
+            case "JACK_O_LANTERN":
+                return (byte) handleJackOLanterns(metaData, rotationalCount);
             default:
                 return handleDefaultCase(blockData);
-//                // TODO optimize this switch into 1-2 lines if possible
-//                int valueOffset;
-//                switch (metaData){
-//                    case 5:
-//                        valueOffset=-3;
-//                        break;
-//                    case 4:
-//                        valueOffset=-1;
-//                        break;
-//                    default:
-//                        valueOffset=2;
-//                }
-//                return (byte) (Math.floorMod((metaData-2)+(valueOffset*rotationalCount), 6)+2);
         }
     }
 
@@ -206,10 +258,17 @@ public class RotateEditTask extends TranslationEditTask {
         }
         Material block = Material.getMaterial(blockId);
         MaterialData blockData = block.getNewData((byte) metaData);
+        if (isPillar(block.name())){
+            return this.rotatePillars(block.name(), metaData, this.degrees/90);
+        }
         if (block.name().contains("RAIL") || blockData instanceof Directional){
             return this.handleRotationalMetadata(blockData, block.name(), blocksNbtIndex);
         }
         return metaData;
+    }
+
+    private boolean isPillar(String blockName){
+        return PILLARS.contains(blockName);
     }
 
     private void handleSkullTileEntities(CompoundMap tileEntity){
