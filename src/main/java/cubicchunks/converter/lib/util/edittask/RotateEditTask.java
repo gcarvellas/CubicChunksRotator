@@ -727,8 +727,8 @@ public class RotateEditTask extends TranslationEditTask {
         byte[] newBlocks = new byte[blocks.length];
         byte[] newMeta = new byte[meta.length];
 
-        int sideLen=16;
-        int squareLen=sideLen*sideLen;
+        int sideLen = 16;
+        int squareLen = sideLen * sideLen;
 
         for (int y = 0; y < blocks.length / squareLen; y++) {
             for (int r = 0; r < sideLen; r++) {
@@ -793,6 +793,19 @@ public class RotateEditTask extends TranslationEditTask {
         return outCubes;
     }
 
+    @Nonnull
+    @Override
+    public List<ImmutablePair<Vector2i, ImmutablePair<Long, CompoundTag>>> actOnColumn(Vector2i columnPos, EditTaskContext.EditTaskConfig config, CompoundTag columnTag, long inColumnPriority) {
+        List<ImmutablePair<Vector2i, ImmutablePair<Long, CompoundTag>>> outColumns = new ArrayList<>();
+
+        Vector2i outPosition = this.rotateDst(columnPos, this.degrees);
+        CompoundMap level = (CompoundMap) columnTag.getValue().get("Level").getValue();
+        level.put(new IntTag("x", outPosition.getX()));
+        level.put(new IntTag("z", outPosition.getY()));
+
+        outColumns.add(new ImmutablePair<>(outPosition, new ImmutablePair<>(inColumnPriority + 1, columnTag)));
+        return outColumns;
+    }
 }
 
 

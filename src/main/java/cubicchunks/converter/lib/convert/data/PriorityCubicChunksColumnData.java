@@ -33,12 +33,12 @@ import java.util.Map;
 public class PriorityCubicChunksColumnData {
     private final Dimension dimension;
     private final EntryLocation2D position;
-    private final ByteBuffer columnData;
+    private final ImmutablePair<Long, ByteBuffer> columnData;
     private final Map<Integer, ImmutablePair<Long, ByteBuffer>> cubeData;
 
     private final boolean isCompressed;
 
-    public PriorityCubicChunksColumnData(Dimension dimension, EntryLocation2D position, ByteBuffer columnData,
+    public PriorityCubicChunksColumnData(Dimension dimension, EntryLocation2D position, ImmutablePair<Long, ByteBuffer> columnData,
                                          Map<Integer, ImmutablePair<Long, ByteBuffer>> cubeData, boolean isCompressed) {
         this.dimension = dimension;
         this.position = position;
@@ -55,7 +55,7 @@ public class PriorityCubicChunksColumnData {
         return position;
     }
 
-    public ByteBuffer getColumnData() {
+    public ImmutablePair<Long, ByteBuffer> getColumnData() {
         return columnData;
     }
 

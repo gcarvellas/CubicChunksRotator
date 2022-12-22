@@ -28,10 +28,12 @@ import com.flowpowered.nbt.CompoundTag;
 import cubicchunks.converter.lib.conf.command.EditTaskContext;
 import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.ImmutablePair;
+import cubicchunks.converter.lib.util.Vector2i;
 import cubicchunks.converter.lib.util.Vector3i;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public interface EditTask {
@@ -40,6 +42,16 @@ public interface EditTask {
      * @return The modified cube/s. The {@link CompoundMap} can be null, if so the cube will be regenerated the next time it's loaded by the game
      */
     @Nonnull List<ImmutablePair<Vector3i, ImmutablePair<Long, CompoundTag>>> actOnCube(Vector3i cubePos, EditTaskContext.EditTaskConfig config, CompoundTag cubeTag, long inCubePriority);
+
+    /**
+     * @param columnTag The column to be modified. The {@link Vector2i} is in chunk coordinates, not block
+     * @return The modified column/s. The {@link CompoundMap} can be null, if so the column will be regenerated the next time it's loaded by the game
+     *
+     * The default behaviour is to just return the column unchanged.
+     */
+    @Nonnull default List<ImmutablePair<Vector2i, ImmutablePair<Long, CompoundTag>>> actOnColumn(Vector2i columnPos, EditTaskContext.EditTaskConfig config, CompoundTag columnTag, long inColumnPriority) {
+        return Collections.singletonList(new ImmutablePair<>(columnPos, new ImmutablePair<>(inColumnPriority, columnTag)));
+    }
 
     // TODO: have each task actually specify dimensions somehow
     default boolean handlesDimension(String directoryName) {
