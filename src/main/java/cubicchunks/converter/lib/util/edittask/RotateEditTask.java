@@ -119,6 +119,21 @@ public class RotateEditTask extends TranslationEditTask {
 
     }
 
+    private int handleDefaultCaseNoBukkit(int metaData, int rotationalCount){
+        int valueOffset;
+        switch (metaData){
+            case 5:
+                valueOffset=-3;
+                break;
+            case 4:
+                valueOffset=-1;
+                break;
+            default:
+                valueOffset=2;
+        }
+        return (Math.floorMod((metaData-2)+(valueOffset*rotationalCount), 6)+2);
+    }
+
     private byte handleDefaultCase(MaterialData blockData) {
         Directional directionalBlockData = (Directional) blockData;
         BlockFace facing = ((Directional) blockData).getFacing();
@@ -173,7 +188,7 @@ public class RotateEditTask extends TranslationEditTask {
     }
 
     private int handleQuartzPillar(int metaData, int rotationalCount){
-        if (metaData != 0){
+        if (metaData != 2){
             return Math.floorMod(metaData - 3 + rotationalCount, 2) + 3;
         }
         return metaData;
@@ -198,18 +213,8 @@ public class RotateEditTask extends TranslationEditTask {
         }
         return metaData;
     }
-    private int handleGlazedTerracotta(int metaData){
-        switch(metaData){
-            case 2:
-                return 4;
-            case 3:
-                return 5;
-            case 4:
-                return 3;
-            case 5:
-                return 2;
-        }
-        return metaData;
+    private int handleGlazedTerracotta(int metaData, int rotationalCount){
+        return Math.floorMod(metaData - rotationalCount, 4);
     }
 
     private int handleRedstoneObjects(int metaData){
@@ -263,16 +268,41 @@ public class RotateEditTask extends TranslationEditTask {
     }
 
     private int rotatePillars(String blockName, int metaData, int rotationalCount){
-        if (blockName.equals("QUARTZ_BLOCK")){ //TODO this is wrong
+        if (blockName.equals("QUARTZ_BLOCK")){
             return handleQuartzPillar(metaData, rotationalCount);
         }
-        if (blockName.contains("LOG") || blockName.equals("HAY_BLOCK")){ //TODO doesnt work for haybales
+        if (blockName.contains("LOG") || blockName.equals("HAY_BLOCK")){
             return handleLogs(metaData, rotationalCount);
         }
         if (blockName.equals("PURPUR_PILLAR")){
             return handlePurpurPillars(metaData, rotationalCount);
         }
         return metaData;
+    }
+
+    private int handleAnvils(int metaData, int rotationalCount){
+        if (metaData >= 8){ //Very damaged anvil
+            return Math.floorMod(metaData - 8 - rotationalCount, 4) + 8;
+        }
+        if (metaData >= 4){ // Slightly damaged anvil
+            return Math.floorMod(metaData - 4 - rotationalCount, 4) + 4;
+        }
+        return Math.floorMod(metaData - rotationalCount, 4);
+    }
+
+    private int handleVine(int metaData){  //TODO this only works for 90 degrees
+        switch (metaData){
+            case 4:
+                return 2;
+            case 2:
+                return 1;
+            case 1:
+                return 8;
+            case 8:
+                return 4;
+            default:
+                throw new IllegalArgumentException("Invalid Vine Metadata");
+        }
     }
 
     private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
@@ -288,7 +318,15 @@ public class RotateEditTask extends TranslationEditTask {
             this.currentWallSkulls.add(blocksNbtIndex);
         }
         if (blockName.contains("GLAZED_TERRACOTTA")) {
-            return (byte) handleGlazedTerracotta(metaData);
+            return (byte) handleGlazedTerracotta(metaData, rotationalCount);
+        }
+
+        if (blockName.contains("ANVIL")) {
+            return (byte) handleAnvils(metaData, rotationalCount);
+        }
+
+        if (blockName.contains("VINE")){
+            return (byte) handleVine(metaData);
         }
 
         switch (blockName){
@@ -315,23 +353,16 @@ public class RotateEditTask extends TranslationEditTask {
             case "DIODE_BLOCK_OFF":
             case "DIODE_BLOCK_ON":
                 return (byte) handleRepeaters(metaData);
+            case "ENDER_CHEST":
+            case "CHEST":
+            case "TRAPPED_CHEST":
+            case "FURNACE":
+            case "SKULL":
+                return (byte) handleDefaultCaseNoBukkit(metaData, rotationalCount);
             case "REDSTONE_COMPARITOR_OFF":
             case "REDSTONE_COMPARITOR_ON":
             default:
                 return handleDefaultCase(blockData);
-//                // TODO optimize this switch into 1-2 lines if possible
-//                int valueOffset;
-//                switch (metaData){
-//                    case 5:
-//                        valueOffset=-3;
-//                        break;
-//                    case 4:
-//                        valueOffset=-1;
-//                        break;
-//                    default:
-//                        valueOffset=2;
-//                }
-//                return (byte) (Math.floorMod((metaData-2)+(valueOffset*rotationalCount), 6)+2);
         }
     }
 
@@ -344,7 +375,7 @@ public class RotateEditTask extends TranslationEditTask {
         if (isPillar(block.name())){
             return this.rotatePillars(block.name(), metaData, this.degrees/90);
         }
-        if (block.name().contains("RAIL") || block.name().contains("TERRACOTTA") || blockData instanceof Directional){
+        if (block.name().contains("ANVIL") || block.name().contains("VINE") || block.name().contains("RAIL") || block.name().contains("TERRACOTTA") || blockData instanceof Directional){ //Some blocks are not a part of Directional but do have rotational data
             return this.handleRotationalMetadata(blockData, block.name(), blocksNbtIndex);
         }
         return metaData;
@@ -394,7 +425,7 @@ public class RotateEditTask extends TranslationEditTask {
             CompoundMap entity = ((CompoundTag) ((List<?>) (level).get("Entities").getValue()).get(i)).getValue();
             List<DoubleTag> pos = (List<DoubleTag>) entity.get("Pos").getValue();
             double x = (pos.get(2).getValue()); //TODO this only works for 90 degrees
-            double z = (((pos.get(0).getValue())-8)*-1)+7; //TODO this only works for 90 degrees
+            double z = (((pos.get(0).getValue())-8)*-1)+8; //TODO this only works for 90 degrees
             double y = (pos.get(1).getValue());
             List<DoubleTag> newPos = Arrays.asList(new DoubleTag("", x), new DoubleTag("", y), new DoubleTag("", z));
             entity.put(new ListTag<>("Pos", DoubleTag.class, newPos));
