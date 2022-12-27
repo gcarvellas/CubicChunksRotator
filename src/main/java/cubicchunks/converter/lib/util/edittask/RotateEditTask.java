@@ -230,6 +230,7 @@ public class RotateEditTask extends TranslationEditTask {
         }
         return metaData;
     }
+
     private int handleButtons(int metaData){
         switch(metaData){
             case 2:
@@ -244,7 +245,7 @@ public class RotateEditTask extends TranslationEditTask {
         return metaData;
     }
 
-    int handleRepeaters(int metaData){
+    int handleRepeatersHooks(int metaData){
         switch(metaData){
             case 2:
                 return 1;
@@ -279,6 +280,23 @@ public class RotateEditTask extends TranslationEditTask {
         }
         return metaData;
     }
+    private int handleDoors(int metaData){
+        switch(metaData){
+            case 1:
+                return 0;
+            case 0:
+                return 3;
+            case 3:
+                return 2;
+            case 2:
+                return 1;
+            case 8:
+                return 9;
+            case 9:
+                return 8;
+        }
+        return metaData;
+    }
 
     private int handleAnvils(int metaData, int rotationalCount){
         if (metaData >= 8){ //Very damaged anvil
@@ -305,6 +323,53 @@ public class RotateEditTask extends TranslationEditTask {
         }
     }
 
+    private int handleComparitors(int metaData){
+        switch(metaData){
+            case 0:
+                return 3;
+            case 4:
+                return 7;
+            case 8:
+                return 11;
+            case 12:
+                return 15;
+            case 1:
+            case 2:
+            case 3:
+            case 5:
+            case 6:
+            case 7:
+            case 9:
+            case 10:
+            case 11:
+            case 13:
+            case 14:
+            case 15:
+                return metaData-1;
+        }
+        return metaData;
+    }
+    private int handlePistons(int metaData){
+        switch(metaData){
+            case 2:
+                return 4;
+            case 4:
+                return 3;
+            case 3:
+                return 5;
+            case 5:
+                return 2;
+            case 10:
+                return 12;
+            case 12:
+                return 11;
+            case 11:
+                return 13;
+            case 13:
+                return 10;
+        }
+        return metaData;
+    }
     private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
         //int degree = degrees;
         int metaData=blockData.getData();
@@ -327,6 +392,14 @@ public class RotateEditTask extends TranslationEditTask {
 
         if (blockName.contains("VINE")){
             return (byte) handleVine(metaData);
+        }
+
+        if (blockName.contains("_DOOR")){
+            return (byte) handleDoors(metaData);
+        }
+
+        if (blockName.contains("PISTON")){
+            return (byte) handlePistons(metaData);
         }
 
         switch (blockName){
@@ -359,8 +432,11 @@ public class RotateEditTask extends TranslationEditTask {
             case "FURNACE":
             case "SKULL":
                 return (byte) handleDefaultCaseNoBukkit(metaData, rotationalCount);
+            case "TRIPWIRE_HOOK":
+                return (byte) handleRepeatersHooks(metaData);
             case "REDSTONE_COMPARITOR_OFF":
-            case "REDSTONE_COMPARITOR_ON":
+                return (byte) handleComparitors(metaData);
+
             default:
                 return handleDefaultCase(blockData);
         }
@@ -395,7 +471,6 @@ public class RotateEditTask extends TranslationEditTask {
         int blocksNbtIndex = (256*Math.floorMod(y, 16))+(16*Math.floorMod(z, 16))+Math.floorMod(x, 16);
         return !this.currentWallSkulls.contains(blocksNbtIndex);
     }
-
     private void rotateTileEntities(CompoundMap level){
         for (int i=0; i< ((List<?>) (level).get("TileEntities").getValue()).size(); i++){
             CompoundMap tileEntity = ((CompoundTag) ((List<?>) (level).get("TileEntities").getValue()).get(i)).getValue();
@@ -406,7 +481,7 @@ public class RotateEditTask extends TranslationEditTask {
             tileEntity.put(new IntTag("z", z));
 
             String blockName = ((String) tileEntity.get("id").getValue());
-            if (blockName.equals("minecraft:skull") && isNotWallSkull(x, y, z)){
+            if (blockName.equals("minecraft:skull") && isNotWallSkull(x, y, z))  {
                 handleSkullTileEntities(tileEntity);
             }
         }
@@ -452,6 +527,7 @@ public class RotateEditTask extends TranslationEditTask {
             if (blockName.equals("minecraft:item_frame")){
                 handleItemFrames(x, z, entity);
             }
+
             if (blockName.equals("minecraft:armor_stand")){
                 handleArmorStand(entity);
             }
