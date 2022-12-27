@@ -425,15 +425,14 @@ public class RotateEditTask extends TranslationEditTask {
                 return (byte) handleButtons(metaData);
             case "DIODE_BLOCK_OFF":
             case "DIODE_BLOCK_ON":
-                return (byte) handleRepeaters(metaData);
+            case "TRIPWIRE_HOOK":
+                return (byte) handleRepeatersHooks(metaData);
             case "ENDER_CHEST":
             case "CHEST":
             case "TRAPPED_CHEST":
             case "FURNACE":
             case "SKULL":
                 return (byte) handleDefaultCaseNoBukkit(metaData, rotationalCount);
-            case "TRIPWIRE_HOOK":
-                return (byte) handleRepeatersHooks(metaData);
             case "REDSTONE_COMPARITOR_OFF":
                 return (byte) handleComparitors(metaData);
 
@@ -497,7 +496,7 @@ public class RotateEditTask extends TranslationEditTask {
 
     private void handleArmorStand(CompoundMap entity){
         int rotation = (int) ((float) (((FloatTag) ((List<?>) (entity).get("Rotation").getValue()).get(0)).getValue()));
-        switch (rotation){
+        switch (rotation){ //TODO this only works for 90 degrees
             case -135:
                 rotation = 135;
                 break;
@@ -510,7 +509,14 @@ public class RotateEditTask extends TranslationEditTask {
 
         List<FloatTag> newRotation = Arrays.asList(new FloatTag("", rotation), new FloatTag("", 0));
         entity.put("Rotation", new ListTag<>("Rotation", FloatTag.class, newRotation));
+    }
 
+    private void handlePainting(CompoundMap entity, double x, double z){
+        int facing = ((ByteTag) (entity).get("Facing")).getValue();
+        facing = Math.floorMod(facing - 1, 4);  //TODO this only works for 90 degrees
+        entity.put("Facing", new ByteTag("Facing", (byte) facing));
+        entity.put("TileX", new IntTag("", (int) Math.round(x))); //TODO changing tilex and tilez doesn't do anything
+        entity.put("TileZ", new IntTag("", (int) Math.round(z)));
     }
 
     private void rotateEntities(CompoundMap level){
@@ -530,6 +536,9 @@ public class RotateEditTask extends TranslationEditTask {
 
             if (blockName.equals("minecraft:armor_stand")){
                 handleArmorStand(entity);
+            }
+            if (blockName.equals("minecraft:painting")){
+                handlePainting(entity, x, z);
             }
         }
     }
