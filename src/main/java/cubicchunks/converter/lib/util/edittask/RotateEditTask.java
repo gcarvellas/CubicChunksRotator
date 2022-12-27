@@ -413,12 +413,30 @@ public class RotateEditTask extends TranslationEditTask {
     }
     private void handleItemFrames(double x, double z, CompoundMap entity){
         entity.put(new IntTag("TileX", (int) Math.floor(x)));
-        entity.put(new IntTag("TileZ", (int) Math.ceil(z)));
+        entity.put(new IntTag("TileZ", (int) Math.floor(z)));
 
         int facing = (int) ((Byte) entity.get("Facing").getValue());
         entity.put(new ByteTag("Facing", (byte) ((facing +3) % 4)));
 
         }
+
+    private void handleArmorStand(CompoundMap entity){
+        int rotation = (int) ((float) (((FloatTag) ((List<?>) (entity).get("Rotation").getValue()).get(0)).getValue()));
+        switch (rotation){
+            case -135:
+                rotation = 135;
+                break;
+            case -180:
+                rotation = 90;
+                break;
+            default:
+                rotation -= 90;
+        }
+
+        List<FloatTag> newRotation = Arrays.asList(new FloatTag("", rotation), new FloatTag("", 0));
+        entity.put("Rotation", new ListTag<>("Rotation", FloatTag.class, newRotation));
+
+    }
 
     private void rotateEntities(CompoundMap level){
         for (int i=0; i< ((List<?>) (level).get("Entities").getValue()).size(); i++){
@@ -433,6 +451,9 @@ public class RotateEditTask extends TranslationEditTask {
             String blockName = ((String) entity.get("id").getValue());
             if (blockName.equals("minecraft:item_frame")){
                 handleItemFrames(x, z, entity);
+            }
+            if (blockName.equals("minecraft:armor_stand")){
+                handleArmorStand(entity);
             }
         }
     }
