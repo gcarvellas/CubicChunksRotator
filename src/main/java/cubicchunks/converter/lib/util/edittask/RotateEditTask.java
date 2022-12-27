@@ -370,6 +370,42 @@ public class RotateEditTask extends TranslationEditTask {
         }
         return metaData;
     }
+
+    private int handleTorches(int metaData){
+        switch(metaData){
+            case 4:
+                return 2;
+            case 2:
+                return 3;
+            case 3:
+                return 1;
+            case 1:
+                return 4;
+        }
+        return metaData;
+    }
+
+    private int handleLevers(int metaData){
+        switch(metaData){
+            case 4:
+                return 2;
+            case 2:
+                return 3;
+            case 3:
+                return 1;
+            case 1:
+                return 4;
+            case 12:
+                return 10;
+            case 10:
+                return 11;
+            case 11:
+                return 9;
+            case 9:
+                return 12;
+        }
+        return metaData;
+    }
     private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
         //int degree = degrees;
         int metaData=blockData.getData();
@@ -403,6 +439,12 @@ public class RotateEditTask extends TranslationEditTask {
         }
 
         switch (blockName){
+            case "LEVER":
+                return (byte) handleLevers(metaData);
+            case "REDSTONE_TORCH_OFF":
+            case "REDSTONE_TORCH_ON":
+            case "TORCH":
+                return (byte) handleTorches(metaData);
             case "RAILS":
             case "POWERED_RAIL":
             case "ACTIVATOR_RAIL":
@@ -425,16 +467,15 @@ public class RotateEditTask extends TranslationEditTask {
                 return (byte) handleButtons(metaData);
             case "DIODE_BLOCK_OFF":
             case "DIODE_BLOCK_ON":
-                return (byte) handleRepeaters(metaData);
+            case "TRIPWIRE_HOOK":
+                return (byte) handleRepeatersHooks(metaData);
             case "ENDER_CHEST":
             case "CHEST":
             case "TRAPPED_CHEST":
             case "FURNACE":
             case "SKULL":
                 return (byte) handleDefaultCaseNoBukkit(metaData, rotationalCount);
-            case "TRIPWIRE_HOOK":
-                return (byte) handleRepeatersHooks(metaData);
-            case "REDSTONE_COMPARITOR_OFF":
+            case "REDSTONE_COMPARATOR_OFF":
                 return (byte) handleComparitors(metaData);
 
             default:
