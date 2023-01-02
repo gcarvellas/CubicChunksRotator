@@ -310,14 +310,36 @@ public class RotateEditTask extends TranslationEditTask {
 
     private int handleVine(int metaData){  //TODO this only works for 90 degrees
         switch (metaData){
-            case 4:
-                return 2;
-            case 2:
-                return 1;
-            case 1:
+            case 1: //south
                 return 8;
-            case 8:
+            case 2: // west
+                return 1;
+            case 3: // south + west
+                return 9;
+            case 4: // north
+                return 2;
+            case 5: // north + south
+                return 10;
+            case 6: // north + west
+                return 3;
+            case 7: //north + west + south
+                return 11;
+            case 8: //east
                 return 4;
+            case 9: // south + east
+                return 12;
+            case 10:
+                return 5;
+            case 11: // south + east + west
+                return 13;
+            case 12:
+                return 6;
+            case 13: // north + south + east
+                return 14;
+            case 14: // east + west + north
+                return 7;
+            case 15:
+                return 15;
             default:
                 throw new IllegalArgumentException("Invalid Vine Metadata");
         }
