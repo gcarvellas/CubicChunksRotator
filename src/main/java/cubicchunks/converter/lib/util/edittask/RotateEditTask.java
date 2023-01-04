@@ -114,7 +114,8 @@ public class RotateEditTask extends TranslationEditTask {
             case 9:
                 return metaData-1;
             default:
-                throw new IllegalArgumentException("Invalid rail metadata");
+                LOGGER.warning("Invalid rail metadata " + metaData);
+                return metaData;
         }
 
     }
@@ -280,16 +281,54 @@ public class RotateEditTask extends TranslationEditTask {
         }
         return metaData;
     }
-    private int handleDoors(int metaData){
-        switch(metaData){
-            case 1:
-                return 0;
+
+    private int handleTrapdoor(int metaData){
+        switch (metaData){
             case 0:
-                return 3;
-            case 3:
                 return 2;
+            case 1:
+                return 3;
             case 2:
                 return 1;
+            case 3:
+                return 0;
+            case 4:
+                return 6;
+            case 5:
+                return 7;
+            case 6:
+                return 5;
+            case 7:
+                return 4;
+            case 8:
+                return 10;
+            case 9:
+                return 11;
+            case 10:
+                return 9;
+            case 11:
+                return 8;
+            case 12:
+                return 14;
+            case 13:
+                return 15;
+            case 14:
+                return 13;
+            case 15:
+                return 12;
+        }
+        return metaData;
+    }
+    private int handleDoors(int metaData){
+        switch(metaData){
+            case 0:
+                return 3;
+            case 1:
+                return 0;
+            case 2:
+                return 1;
+            case 3:
+                return 2;
             case 8:
                 return 9;
             case 9:
@@ -428,6 +467,38 @@ public class RotateEditTask extends TranslationEditTask {
         }
         return metaData;
     }
+
+    private int handleWallSigns(int metaData){
+        switch (metaData){
+            case 2:
+                return 4;
+            case 3:
+                return 5;
+            case 4:
+                return 3;
+            case 5:
+                return 2;
+        }
+        return metaData;
+    }
+
+    private int handleEndRod(int metaData){
+        switch (metaData) {
+            case 0:
+                return 0;
+            case 1:
+                return 1;
+            case 2:
+                return 4;
+            case 3:
+                return 5;
+            case 4:
+                return 3;
+            case 5:
+                return 2;
+        }
+        return metaData;
+    }
     private byte handleRotationalMetadata(MaterialData blockData, String blockName, int blocksNbtIndex){
         //int degree = degrees;
         int metaData=blockData.getData();
@@ -452,12 +523,19 @@ public class RotateEditTask extends TranslationEditTask {
             return (byte) handleVine(metaData);
         }
 
+        if (blockName.contains("TRAP_DOOR") || blockName.contains("IRON_TRAPDOOR")){
+            return (byte) handleTrapdoor(metaData);
+        }
         if (blockName.contains("_DOOR")){
             return (byte) handleDoors(metaData);
         }
 
         if (blockName.contains("PISTON")){
             return (byte) handlePistons(metaData);
+        }
+
+        if (blockName.contains("END_ROD")){
+            return (byte) handleEndRod(metaData);
         }
 
         switch (blockName){
@@ -491,6 +569,9 @@ public class RotateEditTask extends TranslationEditTask {
             case "DIODE_BLOCK_ON":
             case "TRIPWIRE_HOOK":
                 return (byte) handleRepeatersHooks(metaData);
+            case "WALL_SIGN":
+            case "WALL_BANNER":
+                return (byte) handleWallSigns(metaData);
             case "ENDER_CHEST":
             case "CHEST":
             case "TRAPPED_CHEST":
@@ -514,7 +595,7 @@ public class RotateEditTask extends TranslationEditTask {
         if (isPillar(block.name())){
             return this.rotatePillars(block.name(), metaData, this.degrees/90);
         }
-        if (block.name().contains("ANVIL") || block.name().contains("VINE") || block.name().contains("RAIL") || block.name().contains("TERRACOTTA") || blockData instanceof Directional){ //Some blocks are not a part of Directional but do have rotational data
+        if (block.name().contains("END_ROD") || block.name().contains("ANVIL") || block.name().contains("VINE") || block.name().contains("RAIL") || block.name().contains("TERRACOTTA") || blockData instanceof Directional){ //Some blocks are not a part of Directional but do have rotational data
             return this.handleRotationalMetadata(blockData, block.name(), blocksNbtIndex);
         }
         return metaData;
