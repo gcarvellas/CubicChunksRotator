@@ -94,6 +94,37 @@ public class RotateEditTask extends TranslationEditTask {
 
     private boolean isWallSkull(String blockName, byte metaData) { return blockName.equals("SKULL") && metaData != 1; }
 
+    private int handlePoweredRails(int metaData){
+        switch (metaData){
+            case 0: //0 - 1 straights
+                return 1;
+            case 1:
+                return 0;
+            case 2: //2 - 5 curves
+            case 3:
+                return (metaData+12) % 10;
+            case 4:
+                return 3;
+            case 5:
+                return 2;
+            case 9:
+                return 8;
+            case 8:
+                return 9;
+            case 10:
+                return 12;
+            case 11:
+                return 13;
+            case 12:
+                return 11;
+            case 13:
+                return 10;
+            default:
+                LOGGER.warning("Invalid powered rail metadata: " + metaData);
+                return metaData;
+        }
+    }
+
     private int handleRails(int metaData){
         switch(metaData){
             case 0: //0 - 1 straights
@@ -545,9 +576,10 @@ public class RotateEditTask extends TranslationEditTask {
             case "REDSTONE_TORCH_ON":
             case "TORCH":
                 return (byte) handleTorches(metaData);
-            case "RAILS":
             case "POWERED_RAIL":
             case "ACTIVATOR_RAIL":
+                return (byte) handlePoweredRails(metaData);
+            case "RAILS":
             case "DETECTOR_RAIL":
                 return (byte) handleRails(metaData);
             case "SIGN_POST":
