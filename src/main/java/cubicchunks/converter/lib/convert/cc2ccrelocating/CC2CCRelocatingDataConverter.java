@@ -35,6 +35,7 @@ import cubicchunks.converter.lib.util.edittask.EditTask;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -130,10 +131,15 @@ public class CC2CCRelocatingDataConverter implements ChunkDataConverter<Priority
 
         ImmutablePair<Long, CompoundTag> inColumnData;
         try {
-            inColumnData = new ImmutablePair<>(
-                    input.getColumnData().getKey(),
-                    readCompressedCC(new ByteArrayInputStream(input.getColumnData().getValue().array()))
-            );
+            ImmutablePair<Long, ByteBuffer> data = input.getColumnData();
+            if (data != null) {
+                inColumnData = new ImmutablePair<>(
+                        data.getKey(),
+                        readCompressedCC(new ByteArrayInputStream(data.getValue().array()))
+                );
+            } else {
+                inColumnData = null;
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -230,7 +236,11 @@ public class CC2CCRelocatingDataConverter implements ChunkDataConverter<Priority
     }
 
     @Nonnull
-    private Map<Vector2i, ImmutablePair<Long, CompoundTag>> relocateColumnData(Dimension dimension, ImmutablePair<Long, CompoundTag> columnData, EditTaskContext.EditTaskConfig config) {
+    private Map<Vector2i, ImmutablePair<Long, CompoundTag>> relocateColumnData(Dimension dimension, @Nullable ImmutablePair<Long, CompoundTag> columnData, EditTaskContext.EditTaskConfig config) {
+        if (columnData == null) {
+            return new HashMap<>();
+        }
+
         CompoundMap level = (CompoundMap)columnData.getValue().getValue().get("Level").getValue();
 
         Map<Vector2i, ImmutablePair<Long, CompoundTag>> tagMap = new HashMap<>();
