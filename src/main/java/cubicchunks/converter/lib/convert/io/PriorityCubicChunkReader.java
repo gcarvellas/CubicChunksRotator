@@ -250,7 +250,7 @@ public class PriorityCubicChunkReader extends BaseMinecraftReader<PriorityCubicC
                         ByteBuffer cube = save.load(location, true).orElse(Utils.createAirCubeBuffer(location));
                         cubes.put(y, new ImmutablePair<>(0L, cube));
                     }
-                    PriorityCubicChunksColumnData data = new PriorityCubicChunksColumnData(dim, pos2d, column, cubes, true);
+                    PriorityCubicChunksColumnData data = new PriorityCubicChunksColumnData(dim, pos2d, new ImmutablePair<>(0L, column), cubes, true);
                     consumer.accept(data);
                 } catch (IOException ex) {
                     throw new UncheckedIOException(ex);

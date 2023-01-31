@@ -53,6 +53,7 @@ public class PriorityCubicChunkWriter implements ChunkDataWriter<PriorityCubicCh
         this.dstPath = dstPath;
     }
 
+    private Map<Vector2i, Long> columnPriorities = new HashMap<>();
     private Map<Vector3i, Long> cubePriorities = new HashMap<>();
 
     @Override public void accept(PriorityCubicChunksColumnData data) throws IOException {
@@ -111,8 +112,14 @@ public class PriorityCubicChunkWriter implements ChunkDataWriter<PriorityCubicCh
             }
         });
         EntryLocation2D pos = data.getPosition();
-        if (data.getColumnData() != null) {
-            save.save2d(pos, data.getColumnData());
+        ImmutablePair<Long, ByteBuffer> columnData = data.getColumnData();
+        if (columnData != null) {
+            Vector2i columnPos = new Vector2i(pos.getEntryX(), pos.getEntryZ());
+            Long priority = columnPriorities.get(columnPos);
+            if(priority == null || columnData.getFirst() > priority) {
+                columnPriorities.put(columnPos, columnData.getKey());
+                save.save2d(new EntryLocation2D(pos.getEntryX(), pos.getEntryZ()), columnData.getValue());
+            }
         }
         EntryLocation2D entryPos = data.getPosition();
         for (Map.Entry<Integer, ImmutablePair<Long, ByteBuffer>> entry : data.getCubeData().entrySet()) {
