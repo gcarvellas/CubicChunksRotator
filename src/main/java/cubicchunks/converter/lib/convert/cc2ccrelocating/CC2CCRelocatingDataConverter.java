@@ -132,7 +132,7 @@ public class CC2CCRelocatingDataConverter implements ChunkDataConverter<Priority
         ImmutablePair<Long, CompoundTag> inColumnData;
         try {
             ImmutablePair<Long, ByteBuffer> data = input.getColumnData();
-            if (data != null) {
+            if (data != null && data.getValue() != null) {
                 inColumnData = new ImmutablePair<>(
                         data.getKey(),
                         readCompressedCC(new ByteArrayInputStream(data.getValue().array()))
@@ -245,8 +245,8 @@ public class CC2CCRelocatingDataConverter implements ChunkDataConverter<Priority
 
         Map<Vector2i, ImmutablePair<Long, CompoundTag>> tagMap = new HashMap<>();
 
-        int columnX = (Integer) level.get("xPos").getValue();
-        int columnZ = (Integer) level.get("zPos").getValue();
+        int columnX = (Integer) level.get("x").getValue();
+        int columnZ = (Integer) level.get("z").getValue();
 
         for (EditTask task : this.relocateTasks) {
             if (!task.handlesDimension(dimension.getDirectory())) {
