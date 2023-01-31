@@ -27,6 +27,7 @@ import com.flowpowered.nbt.*;
 import cubicchunks.converter.lib.conf.command.EditTaskContext;
 import cubicchunks.converter.lib.util.BoundingBox;
 import cubicchunks.converter.lib.util.ImmutablePair;
+import cubicchunks.converter.lib.util.Vector2i;
 import cubicchunks.converter.lib.util.Vector3i;
 import cubicchunks.regionlib.impl.EntryLocation2D;
 
@@ -81,6 +82,11 @@ public class RotateEditTask extends TranslationEditTask {
     private Vector3i rotateDstVector(Vector3i dstPos){
         int[] rotatedCoordinates = rotateChunkCoordinate(dstPos.getX(), dstPos.getZ());
         return new Vector3i(rotatedCoordinates[0], dstPos.getY(), rotatedCoordinates[1]);
+    }
+
+    private Vector2i rotateDstVector2i(Vector2i dstPos){
+        int[] rotatedCoordinates = rotateChunkCoordinate(dstPos.getX(), dstPos.getY());
+        return new Vector2i(rotatedCoordinates[0], rotatedCoordinates[1]);
     }
 
     public EntryLocation2D rotateDstEntryLocation(EntryLocation2D dstPos){
@@ -798,7 +804,7 @@ public class RotateEditTask extends TranslationEditTask {
     public List<ImmutablePair<Vector2i, ImmutablePair<Long, CompoundTag>>> actOnColumn(Vector2i columnPos, EditTaskContext.EditTaskConfig config, CompoundTag columnTag, long inColumnPriority) {
         List<ImmutablePair<Vector2i, ImmutablePair<Long, CompoundTag>>> outColumns = new ArrayList<>();
 
-        Vector2i outPosition = this.rotateDst(columnPos, this.degrees);
+        Vector2i outPosition = this.rotateDstVector2i(columnPos);
         CompoundMap level = (CompoundMap) columnTag.getValue().get("Level").getValue();
         level.put(new IntTag("x", outPosition.getX()));
         level.put(new IntTag("z", outPosition.getY()));
